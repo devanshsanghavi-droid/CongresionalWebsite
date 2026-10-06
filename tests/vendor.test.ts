@@ -8,9 +8,11 @@
  * on disk, so a hand edit to a vendored file, a file added without the sync,
  * or a stamp that disagrees with its manifest entry fails the build.
  *
- * When a Carta checkout sits beside this repo and has the stamped commit, the
- * files are also compared byte for byte with `git show <commit>:<path>`. In CI
- * there is no such checkout and that part is skipped, which the test says.
+ * When a Carta checkout with the stamped commit is available, the files are
+ * also compared byte for byte with `git show <commit>:<path>`. The checkout is
+ * `$CARTA_DIR` if set (CI checks Carta out at the stamped commit and sets it:
+ * .github/workflows/pages.yml), otherwise a sibling folder beside this repo.
+ * Without one, that part is skipped, and the test says so.
  */
 
 import { createHash } from 'node:crypto';
@@ -37,7 +39,9 @@ function walk(dir: string): string[] {
   });
 }
 
-const cartaCheckout = resolve(site, '..', 'Congressional_App_Challenge');
+const cartaCheckout = process.env['CARTA_DIR']
+  ? resolve(site, process.env['CARTA_DIR'])
+  : resolve(site, '..', 'Congressional_App_Challenge');
 const haveCommit = (() => {
   try {
     execFileSync('git', ['-C', cartaCheckout, 'cat-file', '-e', `${manifest.carta_commit}^{commit}`], { stdio: 'ignore' });
@@ -119,7 +123,7 @@ describe('vendored Carta code', () => {
     }
   });
 
-  it.skipIf(haveCommit)('(no Carta checkout beside this repo: byte comparison with the source repo skipped)', () => {
+  it.skipIf(haveCommit)('(no Carta checkout with the stamped commit: byte comparison with the source repo skipped)', () => {
     expect(existsSync(cartaCheckout) && haveCommit).toBe(false);
   });
 });

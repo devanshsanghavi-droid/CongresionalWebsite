@@ -6,15 +6,19 @@
  * not print. Every date shown is one the person confirmed on Review, or one
  * worked out from it by a sourced rule (content/timelines.json), labelled as
  * worked out, with "ask your county to confirm".
+ *
+ * The countdown is drawn first but comes just after the heading in the
+ * document, because the app moves focus to the heading on every screen change:
+ * a screen reader starting there hears the programme, then the countdown.
  */
 
 import { useId, useState } from 'react';
 import type { AppState } from '../App.tsx';
 import { href, navigate } from '../App.tsx';
 import { Countdown } from '../components/Countdown.tsx';
-import { Disclaimer } from '../components/Common.tsx';
+import { Disclaimer, useReturnFocus } from '../components/Common.tsx';
 import { useI18n } from '../context.ts';
-import { docLabel, timelines } from '../content.ts';
+import { docLabel, sourceKindLabel, timelines } from '../content.ts';
 import { dateAndTime, longDate, monthYear, shortDate, timeOfDay, todayIso } from '../format.ts';
 import { buildIcs, downloadIcs } from '../ics.ts';
 import { datesOf, defaultAsIf, factsOf, nowFor } from '../letter.ts';
@@ -23,6 +27,7 @@ import { calendarEvents, ladder } from '../reminders.ts';
 import { removeLetter, updateLetter } from '../store.ts';
 import { isoToLocalMs, localMsToIso } from '../../carta/lib/dates.ts';
 import { addDays, forecastLetters, secondChancesFor } from '../../carta/lib/timelines.ts';
+import { daysUntil } from '../../carta/lib/urgency.ts';
 
 export function Detail({ state, id }: { state: AppState; id: string }) {
   const { t } = useI18n();
@@ -52,6 +57,8 @@ function LetterView({ state, letter }: { state: AppState; letter: StoredLetter }
   const effective = ms(letter.effectiveDate);
   const appeal = ms(letter.appealDeadline);
   const noticeDate = ms(letter.noticeDate);
+  const appealOpen = appeal !== undefined && daysUntil(appeal, now) >= 0;
+  const asIfMs = letter.source === 'sample' && letter.asIfIso !== undefined ? isoToLocalMs(letter.asIfIso) : undefined;
 
   const update = (change: (l: StoredLetter) => StoredLetter) => {
     try {
@@ -63,15 +70,23 @@ function LetterView({ state, letter }: { state: AppState; letter: StoredLetter }
 
   return (
     <>
-      <div className="card" style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
-        <Countdown dates={dates} nowMs={now} />
+      <div className="card detail-head">
+        <h1>{program}</h1>
+        <div className="detail-countdown">
+          <Countdown dates={dates} nowMs={now} />
+        </div>
         <div>
-          <h1 style={{ margin: 0 }}>{program}</h1>
+          {letter.source === 'sample' ? (
+            <p className="small" style={{ margin: '0 0 6px' }}>
+              <span className="badge">{t('web.sample.badge')}</span>{' '}
+              {asIfMs !== undefined ? t('web.sample.asIf', { date: longDate(asIfMs, lang) }) : null}
+            </p>
+          ) : null}
           <p className="muted" style={{ margin: 0 }}>
             {t(`review.actions.${letter.actionType}`)}
           </p>
           {letter.caseLast4 !== undefined ? (
-            <p className="caption" style={{ margin: 0 }}>
+            <p className="muted small" style={{ margin: 0 }}>
               {t('notice.caseEnding', { last4: letter.caseLast4 })}
             </p>
           ) : null}
@@ -99,7 +114,9 @@ function LetterView({ state, letter }: { state: AppState; letter: StoredLetter }
             ? t('detail.mustDoWithDeadline')
             : letter.actionType === 'approval'
               ? t('detail.mustDoApproval')
-              : t('detail.mustDoNoDeadline')}
+              : app !== undefined || appealOpen
+                ? t('web.detail.mustDoAppeal')
+                : t('detail.mustDoNoDeadline')}
         </p>
         {letter.requiredDocs.length > 0 ? (
           <>
@@ -116,10 +133,12 @@ function LetterView({ state, letter }: { state: AppState; letter: StoredLetter }
       <section className="detail-section" aria-labelledby="by-when">
         <h2 id="by-when">{t('detail.byWhen')}</h2>
         {deadline !== undefined ? (
-          <p style={{ fontWeight: 700, fontSize: '1.25rem' }}>{t('detail.deadlineIs', { date: longDate(deadline, lang) })}</p>
-        ) : (
+          <p className="by-date">{t('detail.deadlineIs', { date: longDate(deadline, lang) })}</p>
+        ) : appeal !== undefined && appealOpen ? (
+          <p className="by-date">{t('detail.appealBy', { date: longDate(appeal, lang) })}</p>
+        ) : app === undefined && appeal === undefined ? (
           <p className="muted">{t('web.detail.noDeadlineFound')}</p>
-        )}
+        ) : null}
         {app !== undefined ? (
           <div className="notice-box red">
             <h3>{t('detail.keepBenefitsTitle')}</h3>
@@ -127,7 +146,9 @@ function LetterView({ state, letter }: { state: AppState; letter: StoredLetter }
           </div>
         ) : null}
         {effective !== undefined ? <p className="muted">{t('detail.takesEffect', { date: longDate(effective, lang) })}</p> : null}
-        {appeal !== undefined ? <p className="muted">{t('detail.appealBy', { date: longDate(appeal, lang) })}</p> : null}
+        {appeal !== undefined && (deadline !== undefined || !appealOpen) ? (
+          <p className="muted">{t('detail.appealBy', { date: longDate(appeal, lang) })}</p>
+        ) : null}
       </section>
 
       <Reminders state={state} letter={letter} now={now} />
@@ -137,13 +158,7 @@ function LetterView({ state, letter }: { state: AppState; letter: StoredLetter }
       <section className="detail-section" aria-labelledby="check">
         <h2 id="check">{t('detail.checkForYourself')}</h2>
         <p className="muted">{t('detail.checkBody')}</p>
-        <details>
-          <summary>{t('detail.seeText')}</summary>
-          <p className="caption">{t('detail.textIsAsRead')} {t('web.detail.textIsRedacted')}</p>
-          <pre className="letter-text" tabIndex={0}>
-            {letter.text}
-          </pre>
-        </details>
+        <p className="muted">{t('web.detail.notKept')}</p>
       </section>
 
       <RemoveLetter state={state} letter={letter} />
@@ -163,13 +178,12 @@ function AsIfControl({
 }) {
   const { t, lang } = useI18n();
   const inputId = useId();
-  const asIfMs = letter.asIfIso === undefined ? undefined : isoToLocalMs(letter.asIfIso);
+  // Folded by default: on a phone the control is tall, and it is scaffolding
+  // for a sample, not part of the letter. The card above already says which
+  // day the sample is shown as if it were.
   return (
-    <section className="notice-box neutral as-if" aria-labelledby={`${inputId}-title`}>
-      <h2 id={`${inputId}-title`}>
-        <span className="badge">{t('web.sample.badge')}</span>{' '}
-        {asIfMs !== undefined ? t('web.sample.asIf', { date: longDate(asIfMs, lang) }) : t('web.sample.realToday', { date: longDate(realNow, lang) })}
-      </h2>
+    <details className="notice-box neutral as-if">
+      <summary>{t('web.sample.changeAsIf')}</summary>
       <p className="small">{t('web.sample.why')}</p>
       <div className="as-if-row">
         <div>
@@ -213,12 +227,10 @@ function AsIfControl({
           </button>
         )}
       </div>
-      {letter.asIfIso !== undefined ? (
-        <p className="caption" style={{ margin: 0 }}>
-          {t('web.sample.realToday', { date: longDate(realNow, lang) })}
-        </p>
-      ) : null}
-    </section>
+      <p className="small" style={{ margin: 0 }}>
+        {t('web.sample.realToday', { date: longDate(realNow, lang) })}
+      </p>
+    </details>
   );
 }
 
@@ -226,15 +238,22 @@ function Reminders({ state, letter, now }: { state: AppState; letter: StoredLett
   const { t, lang } = useI18n();
   const { reminderHour: hour, reminderMinute: minute } = state.settings;
   const reminders = ladder(letter, now, hour, minute);
+  // A sample shown "as if" lists reminders on its pretend dates. Only the ones
+  // still to come by the real clock go into a real calendar: an event in the
+  // past never alerts anyone.
+  const toCalendar = reminders.filter((r) => r.fireAt > state.realNow);
   const dates = datesOf(letter);
   const hasDate = dates.deadlineDate !== undefined || dates.aidPaidPendingDeadline !== undefined;
   const at = new Date(2026, 0, 1, hour, minute).getTime();
+  const [downloaded, setDownloaded] = useState<string | undefined>(undefined);
 
   const download = () => {
-    const events = calendarEvents(letter, reminders, t, lang);
+    const events = calendarEvents(letter, toCalendar, t, lang);
     const ics = buildIcs(events, Date.now(), t('web.reminders.calendarName'));
     const name = (letter.programId ?? 'letter').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    downloadIcs(ics, `carta-${name}-reminders.ics`);
+    const file = `carta-${letter.source === 'sample' ? 'sample-' : ''}${name}-reminders.ics`;
+    downloadIcs(ics, file);
+    setDownloaded(file);
   };
 
   return (
@@ -247,7 +266,7 @@ function Reminders({ state, letter, now }: { state: AppState; letter: StoredLett
         <p>{t('web.reminders.none')}</p>
       ) : (
         <>
-          <ul className="ladder">
+          <ul className="ladder" role="list">
             {reminders.map((r) => (
               <li key={`${r.tier}-${r.fireAt}`} className={r.urgent ? 'urgent' : undefined}>
                 <span>{t(`web.reminders.tier.${r.tier}`)}</span>
@@ -258,14 +277,23 @@ function Reminders({ state, letter, now }: { state: AppState; letter: StoredLett
           {letter.source === 'sample' && letter.asIfIso !== undefined ? (
             <p className="caption">{t('web.reminders.sampleNote')}</p>
           ) : null}
-          <button type="button" className="button" onClick={download} aria-describedby="ics-hint">
-            {t('web.reminders.add')}
-          </button>
-          <p id="ics-hint" className="caption" style={{ marginTop: 8 }}>
-            {t('web.reminders.addHint')}
-          </p>
+          {toCalendar.length === 0 ? (
+            <p>{t('web.reminders.allPast')}</p>
+          ) : (
+            <>
+              <button type="button" className="button" onClick={download} aria-describedby="ics-hint">
+                {t('web.reminders.add')}
+              </button>
+              <p id="ics-hint" className="muted small" style={{ marginTop: 8 }}>
+                {t('web.reminders.addHint')}
+              </p>
+            </>
+          )}
         </>
       )}
+      <p role="status" className="muted small" style={downloaded === undefined ? { margin: 0 } : undefined}>
+        {downloaded === undefined ? '' : t('web.reminders.downloaded', { file: downloaded })}
+      </p>
     </section>
   );
 }
@@ -293,10 +321,13 @@ function SecondChances({ letter, now }: { letter: StoredLetter; now: number }) {
             </blockquote>
             <p className="small">{rule.sourceName}</p>
             <p className="caption">
-              {t('secondChance.checkedOn', { date: shortDate(isoToLocalMs(rule.verifiedOn) ?? 0, lang), kind: rule.sourceKind })}
+              {t('secondChance.checkedOn', {
+                date: shortDate(isoToLocalMs(rule.verifiedOn) ?? 0, lang),
+                kind: sourceKindLabel(rule.sourceKind, lang),
+              })}
             </p>
             <p className="small">
-              <a href={rule.sourceUrl} rel="noopener noreferrer">
+              <a className="source-link" href={rule.sourceUrl} rel="noopener noreferrer">
                 {t('web.detail.source')}
               </a>{' '}
               <span className="caption">{t('web.detail.opensElsewhere')}</span>
@@ -394,10 +425,13 @@ function LettersOnTheWay({
               </blockquote>
               <p className="small">{rule.sourceName}</p>
               <p className="caption">
-                {t('secondChance.checkedOn', { date: shortDate(isoToLocalMs(rule.verifiedOn) ?? 0, lang), kind: rule.sourceKind })}
+                {t('secondChance.checkedOn', {
+                  date: shortDate(isoToLocalMs(rule.verifiedOn) ?? 0, lang),
+                  kind: sourceKindLabel(rule.sourceKind, lang),
+                })}
               </p>
               <p className="small">
-                <a href={rule.sourceUrl} rel="noopener noreferrer">
+                <a className="source-link" href={rule.sourceUrl} rel="noopener noreferrer">
                   {t('web.detail.source')}
                 </a>{' '}
                 <span className="caption">{t('web.detail.opensElsewhere')}</span>
@@ -414,6 +448,7 @@ function RemoveLetter({ state, letter }: { state: AppState; letter: StoredLetter
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
+  const trigger = useReturnFocus(confirming);
   return (
     <div className="detail-section">
       {confirming ? (
@@ -424,7 +459,6 @@ function RemoveLetter({ state, letter }: { state: AppState; letter: StoredLetter
             <button
               type="button"
               className="button danger solid"
-              autoFocus
               onClick={() => {
                 try {
                   removeLetter(letter.id);
@@ -437,14 +471,15 @@ function RemoveLetter({ state, letter }: { state: AppState; letter: StoredLetter
             >
               {t('detail.removeConfirm')}
             </button>
-            <button type="button" className="button secondary" onClick={() => setConfirming(false)}>
+            {/* Focus starts on Cancel, never on the irreversible button. */}
+            <button type="button" className="button secondary" autoFocus onClick={() => setConfirming(false)}>
               {t('common.cancel')}
             </button>
           </div>
           {failed ? <p className="error">{t('web.detail.removeFailed')}</p> : null}
         </div>
       ) : (
-        <button type="button" className="button danger" onClick={() => setConfirming(true)}>
+        <button ref={trigger} type="button" className="button danger" onClick={() => setConfirming(true)}>
           {t('detail.remove')}
         </button>
       )}

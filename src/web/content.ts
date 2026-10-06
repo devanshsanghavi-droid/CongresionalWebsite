@@ -37,3 +37,17 @@ export function docLabel(id: string, lang: Lang): string {
   const words = id.replace(/_/g, ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+/** The i18n key for a rule's `source_kind` ("state statute" -> web.sourceKind.state_statute). */
+export const sourceKindKey = (kind: string): string =>
+  `web.sourceKind.${kind.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')}`;
+
+/**
+ * What kind of source a rule comes from, in the page's language. timelines.json
+ * has these in English only; the Spanish is in i18n.ts (Carta's own). A kind
+ * added to the pack later shows in English until it is translated, and
+ * tests/i18n.test.ts fails until it is.
+ */
+export function sourceKindLabel(kind: string, lang: Lang): string {
+  return lookup(lang, sourceKindKey(kind)) ?? kind;
+}

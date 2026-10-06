@@ -132,6 +132,15 @@ describe('the built site', () => {
     for (const f of files) expect(f.text, f.path).not.toMatch(CDN);
   });
 
+  it('has no protocol-relative address ("//host/...") in any script, page or stylesheet', () => {
+    // `new Image().src = '//stats.example.org/p.gif'` has no "https:" for the
+    // check below to find. The CSP would block it, but this catches it first.
+    const relative = /['"`(]\/\/[a-z0-9-]+(\.[a-z0-9-]+)+(\/|['"`)])/i;
+    for (const f of files.filter((x) => /\.(js|mjs|html|css)$/.test(x.path))) {
+      expect(relative.exec(f.text)?.[0], f.path).toBeUndefined();
+    }
+  });
+
   it('accounts for every absolute URL left in any file', () => {
     const unexplained: string[] = [];
     const seen = new Set<string>();

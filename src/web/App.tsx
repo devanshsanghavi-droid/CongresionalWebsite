@@ -82,10 +82,24 @@ export function App() {
     return () => window.clearInterval(timer);
   }, []);
 
+  // The tab title says which screen this is, so history, tab switchers and a
+  // screen reader's window list do not all say "Try Carta".
+  const screenTitle = (() => {
+    switch (route.name) {
+      case 'home':
+        return translate(lang, 'home.title');
+      case 'add':
+        return translate(lang, 'web.add.title');
+      case 'review':
+        return translate(lang, 'review.title');
+      case 'letter':
+        return letters.find((l) => l.id === route.id)?.programId ?? translate(lang, 'common.unknownProgram');
+    }
+  })();
   useEffect(() => {
     document.documentElement.lang = lang;
-    document.title = `${translate(lang, 'web.title')} · Carta`;
-  }, [lang]);
+    document.title = `${screenTitle} · ${translate(lang, 'web.title')} · Carta`;
+  }, [lang, screenTitle]);
 
   // On a screen change, move focus to the new screen's heading, so a screen
   // reader announces where it is and keyboard users start at the top.
@@ -127,12 +141,15 @@ export function App() {
       </a>
       <header className="app-header">
         <div className={`container ${wide ? 'wide' : ''}`}>
-          <nav aria-label="Carta">
-            <a className="wordmark" href={href({ name: 'home' })}>
+          <nav aria-label={t('web.nav.label')}>
+            <span className="wordmark" aria-hidden="true">
               Carta
-            </a>
+            </span>
             <a href={href({ name: 'home' })}>{t('home.title')}</a>
-            <a href={import.meta.env.BASE_URL}>{t('web.aboutLink')}</a>
+            {/* The landing page is in English only, and the Spanish link says so. */}
+            <a href={import.meta.env.BASE_URL} hrefLang="en">
+              {t('web.aboutLink')}
+            </a>
           </nav>
           <div className="lang-switch" role="group" aria-label={t('web.languageSwitch')}>
             <button type="button" lang="en" aria-pressed={lang === 'en'} onClick={() => chooseLang('en')}>

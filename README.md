@@ -9,7 +9,9 @@ This repository is the public website for [Carta](https://github.com/devanshsang
 an iPhone app, and a **working web version of Carta** that runs the app's own
 letter-reading code in the browser.
 
-Live at **https://devanshsanghavi-droid.github.io/CongresionalWebsite/**
+Will be live at **https://devanshsanghavi-droid.github.io/CongresionalWebsite/**
+once GitHub Pages is switched on for this repository (Settings → Pages →
+Source: GitHub Actions). Until then that address returns 404.
 
 | Page | What it is |
 |---|---|
@@ -26,21 +28,28 @@ Carta is not legal advice and never contacts any agency.
    from Carta's test set, printed and photographed), or take or choose a photo.
    A photo is read **in the browser** by [Tesseract.js](https://github.com/naptha/tesseract.js),
    whose worker, WebAssembly engine and English and Spanish models are all
-   served by this site. Nothing is ever loaded from a CDN.
+   served by this site. Nothing is ever loaded from a CDN. The four samples use
+   the text Apple Vision recorded from them on a Mac when Carta's test set was
+   made, unless you choose "Read it in this browser instead", which reads them
+   with Tesseract (always with the English model: the samples are English).
 2. **Redact.** Carta's own redactor removes anything shaped like a Social
    Security number from the text before anything else sees it.
 3. **Extract.** Carta's own extraction code (`extract()`, the "island") finds
    the dates, the programme, the form, the name and the case number.
 4. **Check what Carta read.** Every field is shown and editable. The name and
    the case number are flagged "Please check this", as in the app, because they
-   fail in ways that still look right. Focusing a field outlines where it was
-   read on the photo. Nothing is kept until Save.
-5. **Your notices.** Each saved letter leads with its countdown, in Carta's
-   tiers and colours (green above 14 days, amber 3 to 14, red below 3).
+   fail in ways that still look right, and under each one the part of the photo
+   it was read from is shown enlarged, so it can be checked on a phone. On a
+   wide screen, focusing any field also outlines where it was read on the
+   photo. Nothing is kept until Save.
+5. **Your letters.** Each saved letter leads with its countdown, in Carta's
+   tiers and colours (green above 14 days, amber 3 to 14, red below 3). Once
+   the date has passed, the countdown names it.
 6. **A letter.** What it says, what to do and by when; the reminder ladder
    (30, 14, 7, 3, 1 days before and on the day, plus the hearing reminders);
    **"Add reminders to my calendar"**, which downloads an `.ics` file with one
-   event per reminder; **"If your benefits stop"**, the second-chance dates from
+   event per reminder (for a sample, only the ones still to come by the real
+   date, each titled "Sample letter: …"); **"If your benefits stop"**, the second-chance dates from
    Carta's `timelines.json`, each with its rule word for word, its source and
    "ask your county to confirm"; and **"Letters on the way"**, the forecast of
    the next letter, with "Did it come?" when it is late.
@@ -55,11 +64,11 @@ date.
 
 | | iPhone app | Web version |
 |---|---|---|
-| Reading the photo | Apple Vision, on the phone | Tesseract.js, in the browser |
+| Reading the photo | Apple Vision, on the phone | Tesseract.js, in the browser (the four samples use Apple Vision's recorded text unless you choose to read them in the browser) |
 | Extraction, redaction, countdown tiers, reminder ladder, second-chance dates, letter forecast | Carta's code | **The same code**, copied by the sync script below |
 | Plain-language explanation | Optional on-device AI model (Qwen2.5 1.5B) | **None.** No model runs in the browser |
-| Reminders | Local notifications (9 am by default) | **A calendar file** (`.ics`) you add to your own calendar, at a time you set |
-| Storage | SQLite on the phone; letter text and name encrypted (AES-256-GCM, key in the keychain) | This browser's `localStorage`, **not encrypted**. No SSN, no full case number (last four digits only, and masked in the stored words), no photo. The Review screen says this before Save |
+| Reminders | Local notifications at 9 am (the time picker does not work on iOS yet) | **A calendar file** (`.ics`) you add to your own calendar, at a time you set. If that calendar syncs online, the reminders (programme and papers; no name or case number) are stored there too |
+| Storage | SQLite on the phone; letter text and name encrypted (AES-256-GCM, key in the keychain) | This browser's `localStorage`, **not encrypted**, so it keeps much less: the confirmed dates, programme, form, office, the name and the last four digits of the case number. **Not the letter's words** (only the few fixed phrases Carta's rules look for, such as "SAR 7", when the letter contains them), no photo, no SSN, no full case number. The Save bar on Review says this |
 | Upside-down page | "Turn the page around" | The same check and message |
 | Form check, phone-to-phone hand-off, checklist, Where to go, onboarding | Yes | No |
 
@@ -106,14 +115,19 @@ The split was designed looking at sample 01 only.
   message, a licence text, or a link a person can choose to follow (the GitHub
   repositories and the sources of the second-chance rules).
 - On GitHub Pages, "the site's own origin" is `devanshsanghavi-droid.github.io`,
-  which GitHub shares between this account's Pages sites.
+  which GitHub shares between this account's Pages sites. That matters for
+  storage as well as for the CSP: **any other Pages site on this account could
+  read what this site keeps in `localStorage`** (key `carta.web.letters.v1`).
+  As of 2026-10-06 the account has no other Pages site. Keep it that way, or
+  serve this site from its own custom domain. Keeping only the confirmed fields,
+  not the letter's words, is what limits the exposure if that ever changes.
 
 ## Running it
 
 ```bash
 npm install
 npm run dev          # http://localhost:5173/CongresionalWebsite/
-npm test             # Vitest: 300 tests
+npm test             # Vitest: 328 tests run, plus 1 skipped by design (see Tests)
 npm run build        # typecheck (three projects) + production build into dist/
 npm run preview      # serve dist/ with the CSP in force
 ```
@@ -124,7 +138,9 @@ the reader into `public/ocr/` from the pinned npm packages
 
 Deployment: `.github/workflows/pages.yml` tests, builds and publishes `dist/` to
 GitHub Pages on every push to `main`. The repository's Pages source must be set
-to "GitHub Actions" once, in Settings → Pages.
+to "GitHub Actions" once, in Settings → Pages; until it is, the deploy job fails
+and the build-and-test job still runs. CI also checks Carta out at the stamped
+commit, so the byte-for-byte comparison in `tests/vendor.test.ts` runs there.
 
 The demo video stays hidden until a URL is set in `DEMO_VIDEO_URL` in
 `src/config.ts`. A file on this site is played in the page; a YouTube or Vimeo
@@ -186,14 +202,30 @@ What the web version does around them, in its own code (`src/web/`):
   `proof_of_residency` itself. The app currently shows those two raw ids.
 - `reminders.ts` composes reminder text from the app's notification strings, as
   the app's `reminder-content.ts` does (which is not vendored, because it imports
-  the app's i18next instance).
+  the app's i18next instance). **One deliberate difference:** the urgent "ask for
+  a hearing to keep your benefits" reminder counts its days to the
+  aid-paid-pending date. The app's `src/lib/notifications/index.ts` passes
+  `deadlineDate ?? aidPaidPendingDeadline` to it, so on a letter with both dates
+  the app's "N days left to ask for a hearing" counts to the wrong date. That is
+  a bug to fix in the app.
+- `components/Countdown.tsx` names the date once it has passed ("Sep 18, 2026
+  has passed"); the app says only "The date has passed".
+- `i18n.ts` overrides a few app strings that would be untrue here: the app's
+  "Add one and Carta will remind you" (the web version only makes a calendar
+  file), "Look at the original" (the web version keeps no photo), and "notices"
+  where the rest of the page says "letters". It also translates each rule's
+  `source_kind`, which timelines.json has in English only.
 
 ## Tests
 
-`npm test` runs 300 tests in 9 files (Vitest, pinned to the America/Los_Angeles
-timezone; `tests/timezone.test.ts` proves the pin works):
+`npm test` runs 328 tests in 10 files, plus one that is skipped by design: the
+vendor test's byte comparison and its "no checkout" note are a pair, and exactly
+one of them runs (Vitest, pinned to the America/Los_Angeles timezone;
+`tests/timezone.test.ts` proves the pin works):
 
-- `vendor.test.ts`: every vendored file matches its stamp (above).
+- `vendor.test.ts`: every vendored file matches its stamp (above), and, with a
+  Carta checkout beside this repo or at `$CARTA_DIR` (as in CI), matches Carta
+  byte for byte.
 - `samples.test.ts`: the bundled SAR 7 extracts its deadline, September 5,
   2026; every date any sample fills in is the date on the letter; the stop notice
   gets its second-chance dates and the SAR 7 its February 2027 forecast.
@@ -201,26 +233,47 @@ timezone; `tests/timezone.test.ts` proves the pin works):
   November 1 daylight-saving change, and every one is 9:00 local; floating local
   times, UTC `DTSTAMP`, CRLF, 75-octet folding that never splits a character.
 - `store.test.ts`: SSNs in several shapes are gone from the bytes actually
-  written to storage; the case number is kept as its last four digits only; an
-  SSN typed on Review is removed; a record with an SSN anywhere is refused
-  outright; "Delete everything" removes this site's keys and nothing else.
-- `dist-origins.test.ts`: the privacy check on a fresh production build (above).
+  written to storage; the case number is kept as its last four digits only,
+  including when the reader mangles its label ("Case Numb. 40-2291 7734", as
+  Tesseract read one corpus photo); none of the letter's words are stored (no
+  address, income, phone or employer), only the rule phrases it contains; a
+  record saved by an older version with the whole letter in it is cut down when
+  read; an SSN typed on Review is removed; a record with an SSN anywhere is
+  refused outright; "Delete everything" removes this site's keys and nothing
+  else.
+- `web-logic.test.ts`: the countdown colours match the app's tier by tier; a
+  sample is shown "as if" its own date and a letter you add never is; the urgent
+  reminder uses the app's wording and counts to the aid-paid-pending date; a
+  sample's calendar events say "Sample letter"; every rule source kind has
+  Spanish words. Each of these was a change that previously left every test
+  green.
+- `dist-origins.test.ts`: the privacy check on a fresh production build (above),
+  including protocol-relative addresses (`'//host/…'`), which have no `https:`
+  for the absolute-URL check to find.
 - `ocr-map.test.ts`, `i18n.test.ts` (every string used exists in English and
   Spanish), `tokens.test.ts` (the CSS colours are Carta's), `timezone.test.ts`.
 
 ## Languages
 
 English and Spanish. Wherever the web version says what the app says, it uses
-the app's own strings, vendored unchanged, so the Spanish is the Spanish the app
-was reviewed with. Strings only the web version needs are in `src/web/i18n.ts`;
-**their Spanish is Carta's own translation**, not an official agency
-translation, and has not yet had a fluent speaker's review. The landing page is
-English only.
+the app's own strings, vendored unchanged. Like the web-only strings, most of
+them have not had a fluent speaker's review: the app's
+`src/lib/i18n/SOURCES.md` records that only its document names and "worth
+checking" cross-references have, and that a few field labels are taken from
+CDSS's own Spanish forms. Strings only the web version needs are in
+`src/web/i18n.ts`; **their Spanish is Carta's own translation**, not an official
+agency translation. The landing page is English only, and the Spanish link to it
+says so.
 
 ## Accessibility
 
 Semantic HTML, a skip link, labelled controls, visible focus, focus moved to the
-heading on every screen change, 17px body text, controls at least 44px tall,
+heading on every screen change (and the countdown placed right after it), a
+title for every screen, 17px body text and nothing that carries meaning below
+16px, form-field borders at 3.8:1, a Save bar that never hides the field you
+are on, confirm boxes that start on Cancel and return focus when closed, a
+reading status that is announced once per stage rather than every percent,
+controls at least 44px tall,
 countdowns that always pair the colour with the number and the words, and the
 app's colours, which were chosen for WCAG AA contrast on its background. It is
 built to work with a keyboard and a screen reader and is laid out for a phone

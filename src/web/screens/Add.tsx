@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { AppState } from '../App.tsx';
 import { navigate } from '../App.tsx';
 import { Disclaimer } from '../components/Common.tsx';
@@ -18,9 +18,25 @@ type Status =
 export function Add({ state }: { state: AppState }) {
   const { t, lang } = useI18n();
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
-  const [language, setLanguage] = useState<LetterLanguage>(lang === 'es' ? 'spa' : 'eng');
+  // A Spanish-speaking family's letters are often in English: read both.
+  const [language, setLanguage] = useState<LetterLanguage>(lang === 'es' ? 'both' : 'eng');
   const ids = { take: useId(), choose: useId(), lang: useId() };
   const busy = status.kind === 'busy';
+  const statusRef = useRef<HTMLDivElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  // The status and the error are drawn at the top of the screen, but the
+  // buttons that start them can be a long way below on a phone, and the tapped
+  // button is disabled while reading, so focus would otherwise fall to the
+  // page. Bring the box into view and put focus on it, once per start, not on
+  // every progress tick.
+  const focusKey: Status | Status['kind'] = status.kind === 'error' ? status : status.kind;
+  useEffect(() => {
+    const box = focusKey === 'busy' ? statusRef.current : typeof focusKey === 'object' ? errorRef.current : null;
+    if (!box) return;
+    box.scrollIntoView({ block: 'nearest' });
+    box.focus({ preventScroll: true });
+  }, [focusKey]);
 
   const toReview = (
     ocr: OcrResult,
@@ -38,6 +54,8 @@ export function Add({ state }: { state: AppState }) {
       source,
       engine,
       photoUrl,
+      photoWidth: ocr.width,
+      photoHeight: ocr.height,
       lines: ocr.lines,
       redactedText: read.redactedText,
       extracted: read.extraction.fields,
@@ -60,14 +78,20 @@ export function Add({ state }: { state: AppState }) {
     }
   };
 
-  const readInBrowser = async (photo: Blob, source: 'sample' | 'photo', sampleId?: string) => {
+  const readInBrowser = async (photo: Blob, letterLanguage: LetterLanguage, source: 'sample' | 'photo', sampleId?: string) => {
     if (!ocrSupported()) {
       setStatus({ kind: 'error', title: t('capture.failedTitle'), body: t('web.ocr.unsupported') });
       return;
     }
     setStatus({ kind: 'busy', progress: { stage: 'preparing', fraction: 0 } });
     try {
-      const ocr = await recognizePhoto(photo, language, (progress) => setStatus({ kind: 'busy', progress }));
+      const ocr = await recognizePhoto(photo, letterLanguage, (progress) =>
+        setStatus((current) =>
+          current.kind === 'busy' && current.progress?.stage === progress.stage && current.progress.fraction === progress.fraction
+            ? current
+            : { kind: 'busy', progress },
+        ),
+      );
       const url = sampleId !== undefined ? samplePhotoUrl(sampleId) : URL.createObjectURL(photo);
       toReview(ocr, 'tesseract', url, source, sampleId);
     } catch {
@@ -77,34 +101,47 @@ export function Add({ state }: { state: AppState }) {
 
   const onFile = (files: FileList | null) => {
     const file = files?.[0];
-    if (file) void readInBrowser(file, 'photo');
+    if (file) void readInBrowser(file, language, 'photo');
   };
 
-  const percent = status.kind === 'busy' && status.progress ? Math.round(status.progress.fraction * 100) : undefined;
+  const progress = status.kind === 'busy' ? status.progress : undefined;
+  const recognizing = progress?.stage === 'recognizing';
+  const percent = recognizing ? Math.round(progress.fraction * 100) : undefined;
+  // What the live region says. It changes only when the stage changes, so a
+  // screen reader hears "Getting ready to read", then "Reading the letter",
+  // not every percent; the percent is drawn, not announced.
+  const stageText =
+    status.kind !== 'busy'
+      ? ''
+      : progress === undefined
+        ? t('capture.reading')
+        : recognizing
+          ? t('web.ocr.recognizing')
+          : t('web.ocr.status');
 
   return (
     <>
       <h1>{t('web.add.title')}</h1>
 
-      <div role="status" aria-live="polite">
-        {status.kind === 'busy' ? (
-          <div className="notice-box neutral">
-            <p style={{ fontWeight: 600 }}>
-              {status.progress === undefined
-                ? t('capture.reading')
-                : status.progress.stage === 'recognizing'
-                  ? t('web.ocr.recognizing', { percent: percent ?? 0 })
-                  : t('web.ocr.status', { percent: percent ?? 0 })}
-            </p>
-            {status.progress !== undefined ? (
-              <progress max={100} value={percent ?? 0} aria-hidden="true" />
+      <div ref={statusRef} tabIndex={-1} className={busy ? 'notice-box neutral' : undefined}>
+        <p role="status" aria-live="polite" style={busy ? { fontWeight: 600 } : { margin: 0 }}>
+          {stageText}
+        </p>
+        {busy ? (
+          <>
+            {progress !== undefined ? (
+              <div className="progress-row" aria-hidden="true">
+                {/* Indeterminate while getting ready: each preparing step reports its own 0 to 100%. */}
+                {recognizing ? <progress max={100} value={percent ?? 0} /> : <progress />}
+                {recognizing ? <span>{percent ?? 0}%</span> : null}
+              </div>
             ) : null}
             <p className="muted small">{t('capture.readingBody')}</p>
-          </div>
+          </>
         ) : null}
       </div>
       {status.kind === 'error' ? (
-        <div className="notice-box red" role="alert">
+        <div ref={errorRef} tabIndex={-1} className="notice-box red" role="alert">
           <h2>{status.title}</h2>
           <p>{status.body}</p>
         </div>
@@ -141,7 +178,7 @@ export function Add({ state }: { state: AppState }) {
                 e.target.value = '';
               }}
             />
-            <label htmlFor={ids.take} className="button" aria-disabled={busy}>
+            <label htmlFor={ids.take} className="button" aria-disabled={busy ? 'true' : undefined}>
               {t('web.add.takePhoto')}
             </label>
             <input
@@ -154,7 +191,7 @@ export function Add({ state }: { state: AppState }) {
                 e.target.value = '';
               }}
             />
-            <label htmlFor={ids.choose} className="button secondary" aria-disabled={busy}>
+            <label htmlFor={ids.choose} className="button secondary" aria-disabled={busy ? 'true' : undefined}>
               {t('web.add.choosePhoto')}
             </label>
           </div>
@@ -165,7 +202,7 @@ export function Add({ state }: { state: AppState }) {
           <h2 id="samples-title">{t('web.add.samplesTitle')}</h2>
           <p>{t('web.add.samplesBody')}</p>
           <p className="muted small">{t('web.add.samplesOcr')}</p>
-          <ul className="samples">
+          <ul className="samples" role="list">
             {SAMPLES.map((sample) => {
               const name = t(sample.nameKey);
               return (
@@ -189,7 +226,8 @@ export function Add({ state }: { state: AppState }) {
                     onClick={() => {
                       setStatus({ kind: 'busy', progress: { stage: 'preparing', fraction: 0 } });
                       void loadSamplePhoto(sample.id)
-                        .then((blob) => readInBrowser(blob, 'sample', sample.id))
+                        // The samples are English letters, whatever language the page is in.
+                        .then((blob) => readInBrowser(blob, 'eng', 'sample', sample.id))
                         .catch(() =>
                           setStatus({ kind: 'error', title: t('capture.failedTitle'), body: t('web.ocr.failedBody') }),
                         );

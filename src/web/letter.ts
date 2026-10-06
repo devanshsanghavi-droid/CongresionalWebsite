@@ -4,24 +4,32 @@
  * Two shapes, deliberately different:
  *
  *   - `Draft` lives in memory while Review is open. It holds the photo URL, the
- *     raw OCR lines (for highlighting where a value came from) and the values
- *     being edited. None of it is ever written anywhere.
+ *     raw OCR lines (for showing where a value came from) and the values being
+ *     edited. None of it is ever written anywhere.
  *   - `StoredLetter` is what Save writes to this browser's localStorage, and the
  *     only thing that is. Dates stay ISO `YYYY-MM-DD` strings and are turned
  *     into local-midnight millis at the moment of use, with Carta's own
  *     `isoToLocalMs` (src/carta/lib/dates.ts), so a stored deadline is a *day*,
  *     not an instant that moves if the device changes timezone.
  *
- * What is not stored, by construction: the photo, the OCR lines, the
- * unredacted text, the full case number (only its last four digits, as the
- * iPhone app does, and it is masked in the stored words too), and anything
- * shaped like a Social Security number (store.ts re-runs Carta's redactor over
- * everything before writing).
+ * What is not stored, by construction: the photo, the OCR lines, the letter's
+ * words, the full case number (only its last four digits, as the iPhone app
+ * does), and anything shaped like a Social Security number (store.ts re-runs
+ * Carta's redactor over everything before writing).
+ *
+ * The letter's words are not kept because a browser's localStorage is not
+ * encrypted, and a page of a benefits letter carries far more than the fields
+ * the person checked: an address, household size, income, an employer, a phone
+ * number. The iPhone app keeps the words encrypted under a key in the keychain;
+ * this site has no such key. The only words kept are the handful of fixed
+ * phrases Carta's own rules look for (`requires_text` in timelines.json, such as
+ * "SAR 7"), and only those the letter contains, spelled as the rule spells them.
+ * So a rule that applies only when the letter mentions a SAR 7 still works.
  *
  * What IS stored, in plain text in this browser: the confirmed dates, the
- * programme, form and office, the name on the letter, and the letter's words
- * with those two numbers removed. localStorage is not encrypted; the page says
- * so where it offers to save.
+ * programme, form and office, the name on the letter, the last four digits of
+ * the case number, and those rule phrases. The page says so where it offers to
+ * save.
  */
 
 import { isoToLocalMs } from '../carta/lib/dates.ts';
@@ -31,6 +39,7 @@ import type { OcrLine } from '../carta/lib/ocr/types.ts';
 import type { NoticeFacts } from '../carta/lib/timelines.ts';
 import type { ActionType, NoticeDates } from '../carta/lib/urgency.ts';
 import { redactText } from '../carta/lib/extraction-port/adapter.ts';
+import { timelines } from './content.ts';
 
 export const ACTION_TYPES: readonly ActionType[] = [
   'approval',
@@ -64,6 +73,9 @@ export interface Draft {
   readonly engine: Engine;
   /** A same-origin path or an object URL. Shown during Review, never stored. */
   readonly photoUrl: string;
+  /** The pixel size the OCR boxes were measured against, for zooming into the photo. */
+  readonly photoWidth: number;
+  readonly photoHeight: number;
   readonly lines: readonly OcrLine[];
   /** Already redacted (pipeline.ts). */
   readonly redactedText: string;
@@ -112,7 +124,11 @@ export interface StoredLetter {
   readonly aidPaidPendingDeadline?: string;
   readonly appealDeadline?: string;
   readonly requiredDocs: readonly string[];
-  /** The page text, after Carta's redactor, with the case number masked too. */
+  /**
+   * NOT the letter's words. Only the fixed phrases Carta's rules look for
+   * (`requires_text` in timelines.json) that the letter contains, one per line,
+   * spelled as the rule spells them. See `ruleWords`.
+   */
   readonly text: string;
   readonly containedSsn: boolean;
   readonly expected?: Readonly<Record<string, ExpectedAnswer>>;
@@ -146,30 +162,24 @@ export function newId(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** Every phrase a Carta rule looks for in a letter (timelines.json `requires_text`). */
+export const RULE_PHRASES: readonly string[] = [
+  ...new Set(timelines.secondChances.flatMap((rule) => rule.requiresText ?? [])),
+];
+
+/** Lower case, runs of whitespace as one space: how Carta's rules compare words. */
+const flat = (text: string): string => text.toLowerCase().replace(/\s+/g, ' ');
+
 /**
- * The letter's words, without the full case number.
- *
- * The iPhone app keeps the page text encrypted under a key in the phone's
- * keychain, and stores the case number itself only as a salted hash plus its
- * last four digits. A browser's localStorage is not encrypted, so the web
- * version keeps the text but takes the case number out of it as well: every
- * labelled case number, and every occurrence of the value that was read or
- * typed, becomes "[CASE …9931]". The rules that need the letter's words (a
- * second-chance rule that applies only if the letter mentions a SAR 7, say)
- * still have them.
+ * The only words of a letter that are ever stored: the rule phrases it contains,
+ * as the rules spell them, one per line. Matching is the same as the rules'
+ * own (src/carta/lib/timelines.ts `mentions`), so every rule that applied to the
+ * letter's words still applies to these. Idempotent, so the write gate can run
+ * it again over whatever it is handed.
  */
-export function maskCaseNumber(text: string, values: readonly (string | undefined)[], last4: string | undefined): string {
-  const mask = `[CASE …${last4 ?? '????'}]`;
-  let out = text.replace(
-    /((?:Case\s*Number|N[uú]mero\s+del?\s+[Cc]aso)\s*[:#]\s*)([A-Za-z0-9][A-Za-z0-9-]{3,})/gi,
-    (_, label: string) => `${label}${mask}`,
-  );
-  for (const value of values) {
-    const v = value?.trim();
-    if (v === undefined || v.length < 4) continue;
-    out = out.split(v).join(mask);
-  }
-  return out;
+export function ruleWords(text: string): string {
+  const page = flat(text);
+  return RULE_PHRASES.filter((phrase) => page.includes(flat(phrase))).join('\n');
 }
 
 /**
@@ -188,7 +198,6 @@ export function toStored(
   const optional = <K extends string>(key: K, value: string | undefined): Partial<Record<K, string>> =>
     value === undefined ? {} : ({ [key]: value } as Record<K, string>);
 
-  const last4 = caseLast4(values.caseNumber?.trim()) ?? caseLast4(draft.extracted.caseNumber?.value);
   const base: StoredLetter = {
     id,
     savedAt,
@@ -196,7 +205,7 @@ export function toStored(
     engine: draft.engine,
     actionType,
     requiredDocs: [...draft.requiredDocs],
-    text: maskCaseNumber(draft.redactedText, [draft.extracted.caseNumber?.value, values.caseNumber], last4),
+    text: ruleWords(draft.redactedText),
     containedSsn: draft.containedSsn,
     ...optional('sampleId', draft.sampleId),
     ...optional('recipientName', clean(values.recipientName)),

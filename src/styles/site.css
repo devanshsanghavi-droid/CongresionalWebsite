@@ -35,6 +35,12 @@
   --neutral: #5A5751;
   --neutral-soft: #F0EEEA;
 
+  /* Site-only, not one of the app's tokens: the edge of a text box, date box or
+     menu. The fill is white on a near-white page, so this border is the only
+     thing that shows where a field is; #857F75 is 3.8:1 against the page and
+     4.0:1 against white (WCAG 1.4.11 asks for 3:1). */
+  --control-border: #857F75;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --touch: 44px;
@@ -51,6 +57,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* Review has a Save bar stuck to the bottom of the screen. Keep a focused
+   field clear of it, rather than scrolled underneath it (WCAG 2.4.11). */
+html:has(.save-bar) {
+  scroll-padding-bottom: 200px;
 }
 
 body {
@@ -147,8 +159,8 @@ a:hover {
 }
 
 .caption {
-  font-size: 0.9375rem;
-  color: var(--text-faint);
+  font-size: 1rem;
+  color: var(--text-muted);
 }
 
 /* ---------------------------------------------------------------- buttons */
@@ -210,6 +222,12 @@ a:hover {
 .button[disabled] {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* A <label> styled as a button cannot be disabled; its input is. Show it. */
+.button[aria-disabled="true"] {
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .link-button {
@@ -426,8 +444,8 @@ a:hover {
 }
 
 .source {
-  font-size: 0.9375rem;
-  color: var(--text-faint);
+  font-size: 1rem;
+  color: var(--text-muted);
   margin-top: 12px;
 }
 
@@ -802,7 +820,7 @@ th[scope="col"] {
   background: var(--neutral-soft);
   color: var(--neutral);
   border: 1px solid var(--border);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 600;
   padding: 2px 10px;
   border-radius: 999px;
@@ -868,7 +886,7 @@ select {
   width: 100%;
   min-height: var(--touch);
   padding: 8px 12px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -907,6 +925,19 @@ progress {
   accent-color: var(--accent);
 }
 
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.progress-row span {
+  font-weight: 600;
+  min-width: 4ch;
+  text-align: right;
+}
+
 .review-layout {
   display: grid;
   gap: 24px;
@@ -935,12 +966,45 @@ progress {
   width: 100%;
 }
 
+/* Drawn around the words it marks, never over them. */
 .highlight {
   position: absolute;
-  border: 3px solid var(--accent);
-  background: rgba(30, 99, 184, 0.14);
-  border-radius: 3px;
+  background: none;
+  border: 0;
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
   pointer-events: none;
+}
+
+/* The part of the photo a flagged field was read from, made bigger. */
+.crops {
+  margin-top: 10px;
+}
+
+.crop-caption {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.source-crop {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 24px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  margin-bottom: 6px;
+}
+
+.source-crop img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  height: auto;
 }
 
 .fields {
@@ -1004,6 +1068,12 @@ progress {
   display: none;
 }
 
+.save-bar .store-short {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 .nowrap {
   white-space: nowrap;
 }
@@ -1020,6 +1090,34 @@ progress {
 
 .detail-section h2 {
   font-size: 1.25rem;
+}
+
+/* The heading comes first in the document (focus lands on it), the countdown
+   second; the countdown is drawn first, as the biggest thing on the screen. */
+.detail-head {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-head h1 {
+  margin: 0;
+}
+
+.detail-countdown {
+  order: -1;
+}
+
+.by-date {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+/* "Read the source" stands alone, so it gets a full-size target. */
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
 }
 
 .ladder {
@@ -1091,18 +1189,6 @@ blockquote.rule {
   font-size: 1rem;
 }
 
-pre.letter-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-  max-height: 420px;
-  overflow: auto;
-}
 
 .button-row {
   display: flex;
@@ -1131,9 +1217,13 @@ pre.letter-text {
   padding: 0;
 }
 
-.as-if {
+.as-if[open] {
   display: grid;
   gap: 8px;
+}
+
+.as-if {
+  margin-bottom: 16px;
 }
 
 .as-if-row {

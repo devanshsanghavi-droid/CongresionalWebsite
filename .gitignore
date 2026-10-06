@@ -6,3 +6,5 @@ dist/
 public/ocr/
 *.log
 .DS_Store
+# Carta, checked out by CI for the byte comparison in tests/vendor.test.ts.
+.carta/

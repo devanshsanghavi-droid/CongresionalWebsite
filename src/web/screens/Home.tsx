@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { AppState } from '../App.tsx';
 import { href, navigate } from '../App.tsx';
 import { Countdown } from '../components/Countdown.tsx';
-import { Disclaimer, WebBanner } from '../components/Common.tsx';
+import { Disclaimer, useReturnFocus, WebBanner } from '../components/Common.tsx';
 import { useI18n } from '../context.ts';
 import { timelines } from '../content.ts';
 import { longDate, monthYear } from '../format.ts';
@@ -46,7 +46,7 @@ export function Home({ state }: { state: AppState }) {
         </div>
       ) : (
         <>
-          <ul className="letter-list">
+          <ul className="letter-list" role="list">
             {letters.map((letter) => {
               const now = nowFor(letter, state.realNow);
               return (
@@ -84,7 +84,7 @@ export function Home({ state }: { state: AppState }) {
       {onTheWay.length > 0 ? (
         <section className="detail-section" style={{ marginTop: 24 }} aria-labelledby="on-the-way">
           <h2 id="on-the-way">{t('expected.sectionTitle')}</h2>
-          <ul className="ladder">
+          <ul className="ladder" role="list">
             {onTheWay.map(({ letter, forecast }) => (
               <li key={`${letter.id}-${forecast.rule.id}`}>
                 <a href={href({ name: 'letter', id: letter.id })}>
@@ -107,6 +107,7 @@ function SettingsPanel({ state }: { state: AppState }) {
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<'done' | 'failed' | undefined>(undefined);
+  const trigger = useReturnFocus(confirming);
   const pad = (n: number): string => String(n).padStart(2, '0');
   const time = `${pad(state.settings.reminderHour)}:${pad(state.settings.reminderMinute)}`;
 
@@ -137,7 +138,7 @@ function SettingsPanel({ state }: { state: AppState }) {
           }}
           style={{ maxWidth: 200 }}
         />
-        <p id="reminder-time-hint" className="caption" style={{ margin: '6px 0 0' }}>
+        <p id="reminder-time-hint" className="muted small" style={{ margin: '6px 0 0' }}>
           {t('web.settings.reminderTimeHint')}
         </p>
       </div>
@@ -149,16 +150,18 @@ function SettingsPanel({ state }: { state: AppState }) {
             <h3 id="wipe-confirm-title">{t('settings.wipeConfirmTitle')}</h3>
             <p id="wipe-confirm-body">{t('web.wipe.what')}</p>
             <div className="button-row">
-              <button type="button" className="button danger solid" onClick={wipe} autoFocus>
+              <button type="button" className="button danger solid" onClick={wipe}>
                 {t('settings.wipeConfirmAction')}
               </button>
-              <button type="button" className="button secondary" onClick={() => setConfirming(false)}>
+              {/* Focus starts on Cancel, never on the irreversible button. */}
+              <button type="button" className="button secondary" onClick={() => setConfirming(false)} autoFocus>
                 {t('common.cancel')}
               </button>
             </div>
           </div>
         ) : (
           <button
+            ref={trigger}
             type="button"
             className="button danger"
             onClick={() => {
@@ -173,7 +176,7 @@ function SettingsPanel({ state }: { state: AppState }) {
           {result === 'done' ? t('web.wipe.done') : result === 'failed' ? t('web.wipe.failed') : ''}
         </p>
       </div>
-      <p className="caption">{t('web.home.storedHere')}</p>
+      <p className="muted small">{t('web.home.storedHere')}</p>
     </section>
   );
 }

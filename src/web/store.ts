@@ -1,23 +1,29 @@
 /**
  * The only place the web version writes anything: this browser's localStorage.
  *
- * There is no server, so this is all the "database" there is. Two rules, both
- * the iPhone app's (its CLAUDE.md §3):
+ * There is no server, so this is all the "database" there is. Two rules from
+ * the iPhone app (its CLAUDE.md §3), and one of this site's own:
  *
  *   1. **Never persist an SSN.** `saveLetter` re-runs Carta's own redactor over
- *      the page text, then serialises the whole record and runs the redactor
- *      over THAT. If anything SSN-shaped is still present anywhere in what would
- *      be written, nothing is written and it throws. A flag saying "redacted" is
+ *      the text, then serialises the whole record and runs the redactor over
+ *      THAT. If anything SSN-shaped is still present anywhere in what would be
+ *      written, nothing is written and it throws. A flag saying "redacted" is
  *      not trusted; the bytes are checked (the app learned this the hard way:
  *      NOTES.md, 2026-09-24).
  *   2. **The person confirms before anything is kept.** Only Review's Save calls
  *      this, with the values the person checked.
+ *   3. **Never persist the letter's words.** localStorage is not encrypted, and
+ *      a page of a letter carries an address, income and more. The gate cuts
+ *      the text down to the rule phrases Carta looks for (`ruleWords` in
+ *      letter.ts) whatever the caller hands it, and a record saved by an older
+ *      version of this page is cut down the next time it is read.
  *
  * Every access is wrapped: storage can be missing (private windows, blocked site
  * data) and the page must still work, it just cannot remember.
  */
 
 import { redactText } from '../carta/lib/extraction-port/adapter.ts';
+import { ruleWords } from './letter.ts';
 import type { StoredLetter } from './letter.ts';
 
 export const LETTERS_KEY = 'carta.web.letters.v1';
@@ -49,14 +55,25 @@ export class StorageRefused extends Error {
 }
 
 export function listLetters(): StoredLetter[] {
+  let letters: StoredLetter[];
   try {
     const raw = storage()?.getItem(LETTERS_KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as StoredLetter[]) : [];
+    letters = Array.isArray(parsed) ? (parsed as StoredLetter[]) : [];
   } catch {
     return [];
   }
+  // A record from before the letter's words stopped being kept: cut it down now.
+  if (letters.some((l) => typeof l.text === 'string' && l.text !== ruleWords(l.text))) {
+    try {
+      writeLetters(letters);
+    } catch {
+      // Still shown; the next successful write cuts it down.
+    }
+    letters = letters.map((l) => ({ ...l, text: ruleWords(l.text) }));
+  }
+  return letters;
 }
 
 export function getLetter(id: string): StoredLetter | undefined {
@@ -65,7 +82,7 @@ export function getLetter(id: string): StoredLetter | undefined {
 
 /** The write gate. Everything stored goes through here. */
 function writeLetters(letters: readonly StoredLetter[]): void {
-  const gated = letters.map((l) => ({ ...l, text: redactText(l.text).text }));
+  const gated = letters.map((l) => ({ ...l, text: ruleWords(redactText(l.text).text) }));
   const serialised = JSON.stringify(gated);
   if (redactText(serialised).containedSsn) {
     throw new StorageRefused('Refusing to store: something shaped like a Social Security number is still present.');

@@ -49,6 +49,9 @@ export function reminderText(
   const program = letter.programId ?? t('notifications.yourBenefits');
   const dates = datesOf(letter);
 
+  // Counted to the aid-paid-pending date, which is what the urgent reminder is
+  // about. (The app currently counts this one to the deadline when a letter has
+  // both dates; see the README's Adaptations.)
   if (reminder.urgent && dates.aidPaidPendingDeadline !== undefined) {
     const count = daysUntil(dates.aidPaidPendingDeadline, reminder.fireAt);
     return { title: t('notifications.urgentTitle'), body: t('notifications.urgentBody', { count, program }) };
@@ -76,7 +79,10 @@ export function calendarEvents(
   lang: Lang,
 ): CalendarEvent[] {
   return reminders.map((reminder) => {
-    const { title, body } = reminderText(letter, reminder, t, lang);
+    const text = reminderText(letter, reminder, t, lang);
+    // A sample is a made-up letter: its events say so, in the calendar itself.
+    const title = letter.source === 'sample' ? `${t('web.sample.badge')}: ${text.title}` : text.title;
+    const body = text.body;
     const d = new Date(reminder.fireAt);
     const day = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
     return {

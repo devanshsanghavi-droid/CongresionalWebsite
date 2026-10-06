@@ -1,4 +1,21 @@
+import { useEffect, useRef } from 'react';
+import type { RefObject } from 'react';
 import { useI18n } from '../context.ts';
+
+/**
+ * For a confirm box that replaces the button that opened it. Returns a ref for
+ * that button, and puts focus back on it when the box closes, so Cancel does
+ * not drop a keyboard or screen-reader user at the top of the page.
+ */
+export function useReturnFocus(open: boolean): RefObject<HTMLButtonElement | null> {
+  const ref = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) ref.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
+  return ref;
+}
 
 /**
  * What this page is, and what it is not. In full before anyone has added a
@@ -32,7 +49,7 @@ export function WebBanner({ compact = false }: { compact?: boolean }) {
 export function Disclaimer() {
   const { t } = useI18n();
   return (
-    <p className="caption" style={{ marginTop: 32 }}>
+    <p className="small" style={{ marginTop: 32 }}>
       <strong>{t('disclaimer.notLegalAdvice')}</strong>
     </p>
   );

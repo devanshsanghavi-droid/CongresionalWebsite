@@ -3,19 +3,17 @@
  * the app): Carta's own tier from `countdownTier()`, the app's colours, and the
  * number always paired with words, so colour is never the only signal. One
  * accessible label for the whole thing ("12 days left"), not "12" then "days".
+ *
+ * One difference from the app: once the date has passed, the web version names
+ * it ("Sep 18, 2026 has passed") rather than only saying a date passed, so the
+ * biggest thing on the screen never leaves the person guessing which date.
  */
 
 import { countdownDate, countdownTier, daysUntil } from '../../carta/lib/urgency.ts';
-import type { CountdownTier, NoticeDates } from '../../carta/lib/urgency.ts';
+import type { NoticeDates } from '../../carta/lib/urgency.ts';
 import { useI18n } from '../context.ts';
-
-const TONE: Record<CountdownTier, 'green' | 'amber' | 'red' | 'neutral'> = {
-  green: 'green',
-  amber: 'amber',
-  red: 'red',
-  expired: 'neutral',
-  none: 'neutral',
-};
+import { shortDate } from '../format.ts';
+import { TONE } from '../tone.ts';
 
 export function Countdown({
   dates,
@@ -26,7 +24,7 @@ export function Countdown({
   nowMs: number;
   size?: 'large' | 'compact';
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const tier = countdownTier(dates, nowMs);
   const tone = TONE[tier];
   const target = countdownDate(dates);
@@ -43,9 +41,10 @@ export function Countdown({
   const cls = `countdown ${size === 'compact' ? 'compact' : ''} ${tone}`;
 
   if (days < 0) {
+    const passed = t('web.countdown.passedOn', { date: shortDate(target, lang) });
     return (
-      <div className={cls} role="img" aria-label={t('notice.overdue')}>
-        <span className="word">{t('notice.overdue')}</span>
+      <div className={cls} role="img" aria-label={passed}>
+        <span className="word">{passed}</span>
       </div>
     );
   }

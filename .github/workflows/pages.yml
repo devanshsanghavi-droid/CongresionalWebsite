@@ -29,9 +29,24 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Check Carta itself out at the commit the vendored files are stamped
+      # with, so tests/vendor.test.ts compares every vendored file byte for
+      # byte with the app's repository here too, not only on a laptop that
+      # happens to have a checkout beside this one.
+      - id: carta
+        run: echo "commit=$(node -p "require('./src/carta/SYNC-MANIFEST.json').carta_commit")" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: devanshsanghavi-droid/Congressional_App_Challenge
+          ref: ${{ steps.carta.outputs.commit }}
+          path: .carta
+          fetch-depth: 1
+          persist-credentials: false
       # Tests first: they include the privacy check on a fresh build of the
       # site (no external origins) and the vendored-code stamps.
       - run: npm test
+        env:
+          CARTA_DIR: .carta
       - run: npm run build
       # No actions/configure-pages: the site sets its own base path in
       # vite.config.ts, and without that step this job (tests and build) stays

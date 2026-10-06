@@ -13,6 +13,8 @@ import { lookup, translate, WEB_KEYS, WEB_KEYS_ES } from '../src/web/i18n.ts';
 import { FIELD_ORDER } from '../src/carta/lib/extraction-port/port.ts';
 import { ACTION_TYPES } from '../src/web/letter.ts';
 import { SAMPLES } from '../src/web/samples.ts';
+import { sourceKindKey } from '../src/web/content.ts';
+import timelinesRaw from '../src/carta/content/timelines.json';
 
 const root = resolve(__dirname, '..', 'src', 'web');
 const files = (dir: string): string[] =>
@@ -33,6 +35,7 @@ const templated = [
   ...['apple-vision-recorded', 'tesseract'].map((e) => `web.review.engine.${e}`),
   ...['came', 'never_came', 'online'].map((s) => `web.detail.answered.${s}`),
   ...SAMPLES.map((s) => s.nameKey),
+  ...[...timelinesRaw.second_chances, ...timelinesRaw.expected_letters].map((r) => sourceKindKey(r.source_kind)),
 ];
 
 const resolves = (lang: 'en' | 'es', key: string) =>

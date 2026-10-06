@@ -13,14 +13,17 @@ const TRY_URL = `${base}try/`;
  * households or people. Sources are named rather than linked: the project
  * records the publisher and the study, and inventing a URL for one would be
  * exactly the kind of unsourced claim Carta's rules forbid.
+ *
+ * HELD BACK until Devansh has opened the KFF Medicaid Enrollment and Unwinding
+ * Tracker himself: the national figures (over 25 million disenrolled in the
+ * 2023 to 2024 unwinding; of those whose reason was reported, 69% cut off for
+ * paperwork). The fact list says "Check both against the tracker before
+ * publishing", and that check has not been done. When it has, add a card worded:
+ * "Over 25 million people were disenrolled from Medicaid in the 2023 to 2024
+ * unwinding. Of those whose reason was reported, 69% were cut off for
+ * paperwork, not because anyone found them ineligible."
  */
 const STATS: readonly { figure: string; text: string; source: string; scope: string }[] = [
-  {
-    figure: '69%',
-    text: 'About 25 million people lost Medicaid in the 2023 to 2024 unwinding. Among states that reported a reason, 69% of them were dropped for paperwork, not because anyone found them ineligible.',
-    source: 'KFF Medicaid Enrollment and Unwinding Tracker',
-    scope: 'United States',
-  },
   {
     figure: '66%',
     text: 'About 2 million people were disenrolled from Medi-Cal during the unwinding, 66% of them for procedural reasons.',
@@ -44,7 +47,7 @@ const STATS: readonly { figure: string; text: string; source: string; scope: str
 const SHOTS: readonly { file: string; alt: string; caption: string }[] = [
   {
     file: 'carta-home.jpg',
-    alt: 'Carta home screen on an iPhone: three letters, each led by a large countdown. 2 days left in red, 11 days left in amber, 46 in green.',
+    alt: 'Carta home screen in the iOS Simulator: three sample letters, each led by a large countdown. 2 days left in red, 11 days left in amber, 46 in green.',
     caption: 'Home. The nearest deadline is the biggest thing on the screen.',
   },
   {
@@ -54,8 +57,8 @@ const SHOTS: readonly { file: string; alt: string; caption: string }[] = [
   },
   {
     file: 'carta-explanation.jpg',
-    alt: 'The "In plain words" section: a plain-language rewrite of the letter, labelled as written by Carta on the phone and possibly wrong.',
-    caption: 'In plain words: written on the phone by an optional AI model, labelled as machine-written.',
+    alt: 'The "In plain words" section: a plain-language rewrite of the letter, labelled as machine-written and possibly wrong.',
+    caption: 'In plain words: written by an optional AI model that runs on the device, labelled as machine-written.',
   },
   {
     file: 'carta-reminder.jpg',
@@ -111,7 +114,7 @@ export function Landing() {
             Carta
           </a>
           <nav className="site-nav" aria-label="Main">
-            <ul>
+            <ul role="list">
               <li>
                 <a href={TRY_URL}>Try Carta</a>
               </li>
@@ -164,7 +167,7 @@ export function Landing() {
                 src={`${base}screenshots/carta-home.jpg`}
                 width={720}
                 height={1565}
-                alt="Carta's home screen on an iPhone: letters led by large countdowns in red, amber and green."
+                alt="Carta's home screen in the iOS Simulator: sample letters led by large countdowns in red, amber and green."
               />
             </div>
           </div>
@@ -175,9 +178,10 @@ export function Landing() {
         <section className="section" aria-labelledby="problem-title">
           <div className="container">
             <SectionHead id="problem-title" title="People lose benefits over paperwork">
-              Most people who lose CalFresh or Medi-Cal are not found ineligible. They miss a six-month report, a
-              request for papers, or a renewal that came during a double shift. Researchers call this churn. The
-              letters that cause it are dense, often English-only, with the deadline in the third paragraph.
+              During the unwinding, most people who lost Medi-Cal were not found ineligible, and more than half of
+              the households who leave CalFresh are likely still eligible. They miss a six-month report, a request
+              for papers, or a renewal that came during a double shift. Researchers call this churn. The letters that
+              cause it are dense, often English-only, with the deadline in the third paragraph.
             </SectionHead>
             <div className="grid two">
               {STATS.map((s) => (
@@ -209,7 +213,7 @@ export function Landing() {
             <p className="prose" style={{ marginTop: 24 }}>
               So in Carta the countdown is the biggest thing on the screen, and the explanation is there to earn
               trust in it: “12 days” is worth nothing unless you believe the app read your letter correctly. Carta is
-              built for one person in particular: Maria, 34, in San Jose (a composite, not a real person). Two kids,
+              built for one person in particular: Maria, 34, in San Jose (an imagined example, not a real person). Two kids,
               two part-time jobs, CalFresh and Medi-Cal, Spanish first, one phone and a limited data plan.
             </p>
           </div>
@@ -221,7 +225,7 @@ export function Landing() {
               In the order a family meets it. Everything runs on the phone, in English and Spanish, and works in
               airplane mode.
             </SectionHead>
-            <ul className="shots">
+            <ul className="shots" role="list">
               {SHOTS.map((s) => (
                 <li key={s.file}>
                   <figure>
@@ -231,6 +235,10 @@ export function Landing() {
                 </li>
               ))}
             </ul>
+            <p className="caption" style={{ marginTop: -16, marginBottom: 32 }}>
+              Screenshots from the iOS Simulator, with fictional sample letters. The reminder was set to fire early
+              for the picture, and the plain-words rewrite took far longer in the Simulator than on a phone.
+            </p>
             <div className="grid three">
               <div>
                 <h3>Check what Carta read</h3>
@@ -243,7 +251,7 @@ export function Landing() {
                 <h3>A countdown and reminders</h3>
                 <p>
                   Reminders arrive 30, 14, 7, 3 and 1 days before, and on the day, at 9 am. Each names the programme,
-                  what to do, and the papers the letter asked for.
+                  what to do, and, when Carta found them, up to three papers the letter asked for.
                 </p>
               </div>
               <div>
@@ -257,29 +265,32 @@ export function Landing() {
               <div>
                 <h3>If your benefits stop</h3>
                 <p>
-                  The ways back a stop notice does not print, like 30 days to turn in what was missing so CalFresh may
-                  start again. Each rule is quoted from its source, marked “ask your county to confirm”.
+                  The ways back a stop notice does not print, like 30 days, under a waiver that runs to June 2027, to
+                  turn in what was missing so CalFresh may start again. Each rule is quoted from its source, marked
+                  “ask your county to confirm”.
                 </p>
               </div>
               <div>
                 <h3>Letters on the way</h3>
                 <p>
-                  A six-month report means a CalFresh renewal notice about five months later. If that month passes
-                  with nothing scanned, Carta asks: did it come?
+                  A six-month report usually means a CalFresh renewal notice about five months later. If that month
+                  passes with nothing scanned, Carta asks: did it come?
                 </p>
               </div>
               <div>
                 <h3>In plain words</h3>
                 <p>
                   An optional 1 GB AI model, running on the phone, rewrites the letter simply. It is never asked for a
-                  date, and the original is always one tap away.
+                  date, and the original is always one tap away. For now it writes in English only, even for a Spanish
+                  letter.
                 </p>
               </div>
             </div>
             <p className="caption" style={{ marginTop: 16 }}>
               Also: a phone-to-phone hand-off for helpers (encrypted, through the two cameras; not yet tried between
-              two real phones), a checklist of papers, and “Delete everything”. The newest features have been checked
-              in the iOS Simulator; the camera and the AI model have run on a real iPhone.
+              two real phones), a checklist of papers, and “Delete everything”. The camera and the AI model have run on
+              a real iPhone. Before you mail it, If your benefits stop, Letters on the way and the hand-off have only
+              run in the iOS Simulator.
             </p>
           </div>
         </section>
@@ -290,7 +301,7 @@ export function Landing() {
               TypeScript, React Native and Expo, with Apple Vision for text, llama.cpp running Qwen2.5 1.5B for the
               optional explanation, SQLite with AES-256-GCM for the letter text, and Jest for the tests.
             </SectionHead>
-            <ol className="pipeline" aria-label="What happens to a photo, in order">
+            <ol className="pipeline" role="list" aria-label="What happens to a photo, in order">
               <li>
                 <span>
                   <strong>Read the photo on the phone.</strong> Apple Vision finds the words and where they sit.
@@ -324,7 +335,9 @@ export function Landing() {
                 <h3>Fixed rules read the dates, not AI</h3>
                 <p>
                   On 5 test photos, scored on a Mac, a small AI model (Qwen2.5 1.5B) got four dates wrong and made up
-                  two. The fixed rules got none wrong and made none up. So the AI is kept away from dates.
+                  two. The fixed rules got none wrong and made none up. So the AI is kept away from dates. The rules
+                  were written with these letters in view and the model had never seen them, so this shows the model
+                  should stay away from dates, not that rules beat AI everywhere.
                 </p>
               </div>
               <div>
@@ -354,9 +367,9 @@ export function Landing() {
               <div>
                 <h3>Measured honestly</h3>
                 <p>
-                  On the test letters it was built with, 96.9% of the key details it filled in were right. On two
-                  letters it had never seen, it filled in 6 details, all 6 right, and left 6 blank for the family
-                  rather than guess.
+                  On the fictional test letters it was built with (printed, photographed, and read by Apple Vision on
+                  a Mac), 96.9% of the key details it filled in were right. On two letters it had never seen, it filled
+                  in 6 details, all 6 right, and left 6 blank for the family rather than guess.
                 </p>
               </div>
               <div>
@@ -373,7 +386,7 @@ export function Landing() {
         <section className="section" id="privacy" aria-labelledby="privacy-title">
           <div className="container">
             <SectionHead id="privacy-title" title="Privacy">
-              Nothing about a letter is ever sent anywhere, in the app or on this site.
+              Nothing about a letter is ever sent over the internet by Carta, in the app or on this site.
             </SectionHead>
             <div className="grid two">
               <div>
@@ -384,19 +397,24 @@ export function Landing() {
                 </p>
                 <p>
                   What is stored, precisely: the letter text and the name are encrypted with AES-256-GCM under a key
-                  that never leaves the phone; the case number is never stored, only a salted hash and its last four
-                  digits; the photo is deleted once it has been read; the dates, programme and form type are stored
-                  plainly so the app can sort and show them. It is field-level encryption, not an encrypted database,
-                  and all of it stays on the phone.
+                  that never leaves the phone; the case number field is kept only as a salted hash and its last four
+                  digits, though the full number still appears inside the encrypted letter text; the photo of the
+                  letter is deleted once it has been read; photos you choose to keep (your papers, and a copy of what
+                  you mailed) are encrypted with the same key; the dates, programme and form type are stored plainly so
+                  the app can sort and show them. It is field-level encryption, not an encrypted database, and all of
+                  it stays on the phone. A helper hand-off sends a letter to another phone only when you choose, through
+                  the two cameras, not over the internet.
                 </p>
               </div>
               <div>
                 <h3>This website</h3>
                 <p>
                   No backend, no analytics, no cookies, no fonts or scripts from anyone else. A letter you add is read
-                  in your browser and saved only in this browser’s local storage, with any Social Security number and
-                  the full case number removed first. That storage is not encrypted, and the page says so before you
-                  save. Photos are not saved. “Delete everything” removes it all.
+                  in your browser. Save keeps only what you checked (the dates, programme, form, the name and the last
+                  four digits of the case number) in this browser’s local storage. The photo, the letter’s words and
+                  any Social Security number are not kept. That storage is not encrypted, and the page says so beside
+                  the Save button. “Delete everything” removes it all. If you add the reminders to a calendar that
+                  syncs online, they are stored there too.
                 </p>
                 <p>
                   Every page carries a Content-Security-Policy that only allows this site’s own address. So the
@@ -418,25 +436,27 @@ export function Landing() {
                   <span className="tag green">The main app</span>
                 </p>
                 <p>
-                  Everything described on this page. The camera and the AI model have run on a real iPhone 16 Pro; the
-                  newest features have been checked in the iOS Simulator.
+                  Everything described on this page. The camera and the AI model have run on a real iPhone 16 Pro.
+                  Before you mail it, If your benefits stop, Letters on the way and the hand-off have only run in the
+                  iOS Simulator.
                 </p>
               </div>
               <div>
                 <h3>Web</h3>
                 <p>
-                  <span className="tag green">Live on this site</span>
+                  <span className="tag green">On this site</span>
                 </p>
                 <p>
                   Runs Carta’s own letter-reading code in the browser, copied from the app by a script that stamps each
-                  file with where it came from. Text is read by Tesseract instead of Apple Vision, so photos are read
-                  less well. No on-device AI explanation. Reminders go to your calendar as a file, not as phone
-                  notifications. No form check, hand-off or checklist. <a href={TRY_URL}>Try it</a>.
+                  file with where it came from. Your photos are read by Tesseract instead of Apple Vision, so they are
+                  read less well (the four sample letters use Apple Vision’s recorded text unless you choose to read
+                  them in the browser). No on-device AI explanation. Reminders go to your calendar as a file, not as
+                  phone notifications. No form check, hand-off or checklist. <a href={TRY_URL}>Try it</a>.
                 </p>
                 <p className="small muted">
-                  Measured on Carta’s 23 real test photos (176 details in all): with Apple Vision reading, Carta filled
-                  in 154 details, 4 of them wrong; with Tesseract, 120, 1 of them wrong. The rest were left blank for
-                  the person to fill in. <a href={`${SITE_REPO_URL}/blob/main/measurements/tesseract-vs-vision.md`}>The measurement</a>.
+                  Measured on 23 real photos of Carta’s fictional test letters (176 details in all): with Apple Vision
+                  (run on a Mac) reading, Carta filled in 154 details, 4 of them wrong; with Tesseract, 120, 1 of them
+                  wrong. The rest were left blank for the person to fill in. <a href={`${SITE_REPO_URL}/blob/main/measurements/tesseract-vs-vision.md`}>The measurement</a>.
                 </p>
               </div>
               <div>
@@ -494,7 +514,7 @@ export function Landing() {
             The sample letters on this site are fictional. The web version’s code was copied from Carta at commit{' '}
             <code>{CARTA_COMMIT.slice(0, 7)}</code>.
           </p>
-          <ul>
+          <ul role="list">
             <li>
               <a href={TRY_URL}>Try Carta</a>
             </li>

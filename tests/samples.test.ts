@@ -30,6 +30,8 @@ function draftFor(id: string): Draft {
     sampleId: id,
     engine: 'apple-vision-recorded',
     photoUrl: `samples/${id}.jpg`,
+    photoWidth: read.ocr.width,
+    photoHeight: read.ocr.height,
     lines: read.ocr.lines,
     redactedText: read.redactedText,
     extracted: read.extraction.fields,
