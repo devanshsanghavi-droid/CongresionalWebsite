@@ -1,0 +1,10 @@
+{
+  // Tests, build scripts and config: these run in Node, so they get Node's
+  // types. The site's own code (tsconfig.json) does not.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["node", "vite/client"]
+  },
+  "include": ["tests", "vite.config.ts", "vitest.config.ts", "scripts/*.mts"]
+}
