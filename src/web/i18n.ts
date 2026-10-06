@@ -163,7 +163,6 @@ const WEB_EN: Dict = {
   'web.sourceKind.state_statute': 'state statute',
   'web.sourceKind.federal_regulation_and_legal_aid_guide': 'federal regulation and legal aid guide',
 
-  'web.doc.proof_of_residency': 'Proof of where you live',
 
   'web.settings.reminderTime': 'Reminder time',
   'web.settings.reminderTimeHint': 'Used for the calendar file.',
@@ -306,7 +305,6 @@ const WEB_ES: Dict = {
   'web.sourceKind.state_statute': 'ley estatal',
   'web.sourceKind.federal_regulation_and_legal_aid_guide': 'reglamento federal y guía de ayuda legal',
 
-  'web.doc.proof_of_residency': 'Prueba de dónde vive',
 
   'web.settings.reminderTime': 'Hora de los recordatorios',
   'web.settings.reminderTimeHint': 'Se usa para el archivo de calendario.',

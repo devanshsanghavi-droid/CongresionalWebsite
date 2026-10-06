@@ -2,8 +2,8 @@
 // VENDORED FROM CARTA - do not edit here. Change it in the app and run
 // `npm run sync` (scripts/sync-from-carta.mjs).
 //   carta-source: src/lib/content/types.ts
-//   carta-commit: e3c1bf1f7784ac4a3d330ff27c6db943d77ffea7
-//   source-sha256: 3c63a13ce7042ccb50936919af8aaf5a34c48ca1dcd27887b9ee543258cf2ff4
+//   carta-commit: a2af242297c2704b5418c5be177654cb1a9cdf66
+//   source-sha256: a720f530a6ca6a89eec617336730aa399fc43dee1ba33b8954862b270c0ced1c
 // ---------------------------------------------------------------------------
 /**
  * Types for the bundled content packs.
@@ -191,6 +191,7 @@ export interface DocType {
 }
 
 export interface DocTypesPack {
+  /** Keyed by id and by every alias; `.id` on the result is the id to store. */
   readonly byId: ReadonlyMap<string, DocType>;
   /** In file order, which is the order the picker offers them. */
   readonly all: readonly DocType[];

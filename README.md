@@ -197,17 +197,17 @@ What the web version does around them, in its own code (`src/web/`):
   the web version does not use.
 - `ocr-map.ts` maps Tesseract's output to Carta's `OcrLine` shape (boxes
   normalised 0-1, top-left origin) and splits column-joined lines (above).
-- `content.ts` maps the island's document id `lease_or_rent_receipt` to the
-  vocabulary entry `rent_receipt` ("Rent receipt or lease"), and words
-  `proof_of_residency` itself. The app currently shows those two raw ids.
 - `reminders.ts` composes reminder text from the app's notification strings, as
   the app's `reminder-content.ts` does (which is not vendored, because it imports
-  the app's i18next instance). **One deliberate difference:** the urgent "ask for
-  a hearing to keep your benefits" reminder counts its days to the
-  aid-paid-pending date. The app's `src/lib/notifications/index.ts` passes
-  `deadlineDate ?? aidPaidPendingDeadline` to it, so on a letter with both dates
-  the app's "N days left to ask for a hearing" counts to the wrong date. That is
-  a bug to fix in the app.
+  the app's i18next instance). The urgent "ask for a hearing to keep your
+  benefits" reminder counts its days to the aid-paid-pending date.
+
+Two app bugs were found while building this site and are fixed in the app at
+`a2af242`, which is the commit vendored here: the hearing reminder counted its
+days to the form deadline when a letter carried both dates, and two document
+ids the extractor emits (`lease_or_rent_receipt`, `proof_of_residency`) had no
+label. This site used to work around both in its own code; it now uses the
+app's.
 - `components/Countdown.tsx` names the date once it has passed ("Sep 18, 2026
   has passed"); the app says only "The date has passed".
 - `i18n.ts` overrides a few app strings that would be untrue here: the app's

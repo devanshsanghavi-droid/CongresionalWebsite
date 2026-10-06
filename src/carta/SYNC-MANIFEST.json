@@ -1,7 +1,7 @@
 {
   "_about": "Written by scripts/sync-from-carta.mjs. Every file under src/carta and public/samples, the Carta path it was copied from, and the SHA-256 of the source bytes at that commit. Checked by tests/vendor.test.ts.",
   "carta_repository": "https://github.com/devanshsanghavi-droid/Congressional_App_Challenge",
-  "carta_commit": "e3c1bf1f7784ac4a3d330ff27c6db943d77ffea7",
+  "carta_commit": "a2af242297c2704b5418c5be177654cb1a9cdf66",
   "files": [
     {
       "dest": "src/carta/extraction/dates.ts",
@@ -78,13 +78,13 @@
     {
       "dest": "src/carta/lib/content/types.ts",
       "source": "src/lib/content/types.ts",
-      "sha256": "3c63a13ce7042ccb50936919af8aaf5a34c48ca1dcd27887b9ee543258cf2ff4",
+      "sha256": "a720f530a6ca6a89eec617336730aa399fc43dee1ba33b8954862b270c0ced1c",
       "stamped": true
     },
     {
       "dest": "src/carta/lib/content/parse.ts",
       "source": "src/lib/content/parse.ts",
-      "sha256": "3db64ce7b7ed93c4cbc8756264e964947e8b3e16bb92f5ac249fae4504f82a32",
+      "sha256": "fb6adf42737091835d169cb147124acae05920fad0f06f4348ae8b74cbc41dac",
       "stamped": true
     },
     {
@@ -144,7 +144,7 @@
     {
       "dest": "src/carta/content/doc_types.json",
       "source": "content/doc_types.json",
-      "sha256": "9ff8232bc81e03490f0db093a4d1b74d7f28f462f07cae5d000084ef46d30fad",
+      "sha256": "e070b056ef68d1e7dc366044e86960454ab1716f7ac2e45ae29c6b052a2ee1a1",
       "stamped": false
     },
     {

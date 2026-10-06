@@ -50,8 +50,8 @@ export function reminderText(
   const dates = datesOf(letter);
 
   // Counted to the aid-paid-pending date, which is what the urgent reminder is
-  // about. (The app currently counts this one to the deadline when a letter has
-  // both dates; see the README's Adaptations.)
+  // about, as the app does since a2af242 (it used to count to the deadline when
+  // a letter had both dates).
   if (reminder.urgent && dates.aidPaidPendingDeadline !== undefined) {
     const count = daysUntil(dates.aidPaidPendingDeadline, reminder.fireAt);
     return { title: t('notifications.urgentTitle'), body: t('notifications.urgentBody', { count, program }) };

@@ -2,7 +2,7 @@
 // VENDORED FROM CARTA - do not edit here. Change it in the app and run
 // `npm run sync` (scripts/sync-from-carta.mjs).
 //   carta-source: src/lib/ocr/types.ts
-//   carta-commit: e3c1bf1f7784ac4a3d330ff27c6db943d77ffea7
+//   carta-commit: a2af242297c2704b5418c5be177654cb1a9cdf66
 //   source-sha256: d29cd3b090e937212fd1ab0c888b54d209ceb428dc00f91e93bb39539f506199
 // ---------------------------------------------------------------------------
 /**

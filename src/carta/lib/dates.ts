@@ -2,7 +2,7 @@
 // VENDORED FROM CARTA - do not edit here. Change it in the app and run
 // `npm run sync` (scripts/sync-from-carta.mjs).
 //   carta-source: src/lib/dates.ts
-//   carta-commit: e3c1bf1f7784ac4a3d330ff27c6db943d77ffea7
+//   carta-commit: a2af242297c2704b5418c5be177654cb1a9cdf66
 //   source-sha256: b87913db7a08dbf40c0d1078c0da8bd2e7e83fc2ea57623bddfc09c69818aae3
 // ---------------------------------------------------------------------------
 /**

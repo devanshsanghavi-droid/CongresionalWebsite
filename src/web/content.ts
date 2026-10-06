@@ -18,22 +18,14 @@ export const timelines: TimelinesPack = parseTimelines(timelinesRaw);
 export const docTypes: DocTypesPack = parseDocTypes(docTypesRaw);
 
 /**
- * The extraction island names two documents with ids that Carta's own
- * vocabulary (doc_types.json) does not have: `lease_or_rent_receipt` and
- * `proof_of_residency`. The iPhone app currently shows those raw ids. The web
- * version maps the first to the vocabulary entry that means the same thing
- * ("Rent receipt or lease") and words the second itself (strings in i18n.ts,
- * Spanish marked as Carta's own). Neither says what any programme requires:
- * both were read off the person's own letter.
+ * A document id read off a letter, as words. Carta's vocabulary resolves the
+ * island's ids directly, including `lease_or_rent_receipt` through its alias
+ * (fixed in the app at a2af242; this site used to carry its own mapping). An
+ * id the vocabulary lacks is shown as it was read, never dropped.
  */
-const ALIASES: Readonly<Record<string, string>> = { lease_or_rent_receipt: 'rent_receipt' };
-
-/** A document id read off a letter, as words. An unknown id is shown as it was read. */
 export function docLabel(id: string, lang: Lang): string {
-  const type = docTypes.byId.get(ALIASES[id] ?? id);
+  const type = docTypes.byId.get(id);
   if (type !== undefined) return lang === 'es' ? type.labelEs : type.label;
-  const own = lookup(lang, `web.doc.${id}`);
-  if (own !== undefined) return own;
   const words = id.replace(/_/g, ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
 }

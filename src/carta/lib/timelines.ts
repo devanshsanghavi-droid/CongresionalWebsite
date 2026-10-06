@@ -2,7 +2,7 @@
 // VENDORED FROM CARTA - do not edit here. Change it in the app and run
 // `npm run sync` (scripts/sync-from-carta.mjs).
 //   carta-source: src/lib/timelines.ts
-//   carta-commit: e3c1bf1f7784ac4a3d330ff27c6db943d77ffea7
+//   carta-commit: a2af242297c2704b5418c5be177654cb1a9cdf66
 //   source-sha256: 952e1f585c440f6e1ba30d44bfc58536dbc0da23fdf73cf7a48a35d891c31c12
 // ---------------------------------------------------------------------------
 /**

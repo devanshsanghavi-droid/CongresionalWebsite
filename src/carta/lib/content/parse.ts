@@ -2,8 +2,8 @@
 // VENDORED FROM CARTA - do not edit here. Change it in the app and run
 // `npm run sync` (scripts/sync-from-carta.mjs).
 //   carta-source: src/lib/content/parse.ts
-//   carta-commit: e3c1bf1f7784ac4a3d330ff27c6db943d77ffea7
-//   source-sha256: 3db64ce7b7ed93c4cbc8756264e964947e8b3e16bb92f5ac249fae4504f82a32
+//   carta-commit: a2af242297c2704b5418c5be177654cb1a9cdf66
+//   source-sha256: fb6adf42737091835d169cb147124acae05920fad0f06f4348ae8b74cbc41dac
 // ---------------------------------------------------------------------------
 /**
  * Content pack parsing and validation — pure.
@@ -255,6 +255,22 @@ export function parseDocTypes(raw: unknown): DocTypesPack {
     if (byId.has(type.id)) throw new ContentError('doc_types', `duplicate id "${type.id}"`);
     byId.set(type.id, type);
   }
+
+  // Aliases are the ids the extraction cascade emits where they differ from the
+  // vocabulary's (see `_aliases` in the JSON). They resolve to the same entry,
+  // so `byId.get(alias).id` is the id to store. Registered after every real id,
+  // so an alias that shadows one is caught whichever comes first in the file.
+  arr(root['doc_types'], 'doc_types').forEach((entry, i) => {
+    const aliases = obj(entry, `doc_types[${i}]`)['aliases'];
+    if (aliases === undefined) return;
+    const type = all[i];
+    if (type === undefined) return;
+    for (const [j, alias] of arr(aliases, `doc_types[${i}].aliases`).entries()) {
+      const id = requireString(alias, `doc_types[${i}].aliases[${j}]`);
+      if (byId.has(id)) throw new ContentError('doc_types', `duplicate id "${id}"`);
+      byId.set(id, type);
+    }
+  });
 
   const translationTodo = optionalString(root['_translation_todo'], '_translation_todo');
   return { byId, all, ...(translationTodo === undefined ? {} : { translationTodo }) };

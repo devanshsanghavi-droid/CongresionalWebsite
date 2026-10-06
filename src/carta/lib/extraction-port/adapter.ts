@@ -2,7 +2,7 @@
 // VENDORED FROM CARTA - do not edit here. Change it in the app and run
 // `npm run sync` (scripts/sync-from-carta.mjs).
 //   carta-source: src/lib/extraction-port/adapter.ts
-//   carta-commit: e3c1bf1f7784ac4a3d330ff27c6db943d77ffea7
+//   carta-commit: a2af242297c2704b5418c5be177654cb1a9cdf66
 //   source-sha256: f704e107164ab69bafb000a7897ea654f48e58718723971d046cba5e299fb5f1
 // ---------------------------------------------------------------------------
 /**
