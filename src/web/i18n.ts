@@ -101,7 +101,7 @@ const WEB_EN: Dict = {
 
   'web.reminders.title': 'Reminders',
   'web.reminders.body':
-    'The iPhone app sends these as notifications at {{time}}. Here, you can add them to your calendar.',
+    'Each at {{time}} on the day shown. The iPhone app sends them as notifications; here, you can add them to your calendar.',
   'web.reminders.tier.t30': '30 days before',
   'web.reminders.tier.t14': '14 days before',
   'web.reminders.tier.t7': '7 days before',
@@ -217,7 +217,7 @@ const WEB_ES: Dict = {
 
   'web.reminders.title': 'Recordatorios',
   'web.reminders.body':
-    'La app de iPhone los envía como notificaciones a las {{time}}. Aquí puede agregarlos a su calendario.',
+    'Cada uno a las {{time}} del día que se muestra. La app de iPhone los envía como notificaciones; aquí puede agregarlos a su calendario.',
   'web.reminders.tier.t30': '30 días antes',
   'web.reminders.tier.t14': '14 días antes',
   'web.reminders.tier.t7': '7 días antes',

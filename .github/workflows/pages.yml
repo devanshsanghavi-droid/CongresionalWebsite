@@ -1,8 +1,8 @@
 # Build, test and publish the site to GitHub Pages on every push to main.
 #
 # One-time setup in the repository: Settings -> Pages -> Build and deployment
-# -> Source: "GitHub Actions". Without it the deploy job fails with a 404 from
-# the Pages API.
+# -> Source: "GitHub Actions". Until then the deploy job fails (the Pages site
+# does not exist yet); the build job, which runs the tests, is unaffected.
 name: Pages
 
 on:
@@ -33,7 +33,9 @@ jobs:
       # site (no external origins) and the vendored-code stamps.
       - run: npm test
       - run: npm run build
-      - uses: actions/configure-pages@v5
+      # No actions/configure-pages: the site sets its own base path in
+      # vite.config.ts, and without that step this job (tests and build) stays
+      # green even before Pages is switched on; only `deploy` waits on that.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
